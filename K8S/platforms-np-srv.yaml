@@ -1,3 +1,6 @@
+# targetPort is the port on which the container is running internally.
+# port is the port on the service that is exposed to the external world.
+# platformservice refers to the name of the container we defined in platform-depl.yaml.
 apiVersion: v1
 kind: Service
 metadata:
