@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PlatformService.Data;
 using PlatformService.Dtos;
 using PlatformService.Models;
+using PlatformService.SyncDataServices.Http;
 using System;
 using System.Collections.Generic;
 
@@ -15,11 +16,18 @@ namespace PlatformService.Controllers
     {
         private readonly IPlatformRepo _repository;
         private readonly IMapper _mapper;
+        private readonly ICommandDataClient _commandDataClient;
 
-        public PlatformsController(IPlatformRepo repository, IMapper mapper)
+        // Here we inject IPlatformRepo, IMapper and ICommandDataClient into the constructor
+        // Because we have added the AddHttpClient to the Program.cs, we can use the HttpClient here.
+        public PlatformsController(
+            IPlatformRepo repository,
+            IMapper mapper,
+            ICommandDataClient commandDataClient)
         {
             _repository = repository;
             _mapper = mapper;
+            _commandDataClient = commandDataClient;
         }
 
         //When you call this, we return an enumeartion of our platform read dto, not platform entity, not platform model
@@ -47,7 +55,7 @@ namespace PlatformService.Controllers
         }
 
         [HttpPost]
-        public ActionResult<PlatformReadDto> CreatePlatform(PlatformCreateDto platformCreateDto)
+        public async Task<ActionResult<PlatformReadDto>> CreatePlatformAsync(PlatformCreateDto platformCreateDto)
         {
             //Mapping from platformCreateDto to platform
             var platformModel = _mapper.Map<Platform>(platformCreateDto);
@@ -55,7 +63,16 @@ namespace PlatformService.Controllers
             _repository.SaveChanges();
             //Mapping from platform to platformReadDto
             var platformReadDto = _mapper.Map<PlatformReadDto>(platformModel);
-
+            //Send the platformReadDto to the Command Service
+            try
+            {
+                await _commandDataClient.SendPlatformToCommand(platformReadDto);
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"--> Could not send synchronously: {ex.Message}");
+                
+            }
             //Return HTTP with the created item
             return CreatedAtRoute(nameof(GetPlatformById), new { Id = platformReadDto.Id }, platformReadDto);
         }
