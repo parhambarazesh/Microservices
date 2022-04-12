@@ -309,3 +309,58 @@ dotnet new webapi -n CommandsService --framework net5.0
 -n: name of the project
 
 --framework: .NET framework to use. if skipped the latest version will be selected (now .NET 6).
+
+# Messaging:
+
+Synchronous Messaging:
+
+1. Request/Response cycle.
+2. As a client I make a request to HTTP endpoint and wait to get the response.
+3. Externally facing services usually are synchronous, e.g. HTTP requests.
+4. Synchronous services usually need to know each other, technically know the endpoint to the service we are requesting.
+5. In this tutorial we use 2 forms of synchronous messaging:
+   5.1. HTTP
+   5.2. gRPC
+
+Question: Does this async shows Http methods are asynchronous?
+
+![1649719608464.png](image/Readme/1649719608464.png)
+
+Answer: No. Why?
+
+1. From the messaging perspective this method is still synchronous.
+2. Any client making a request to that endpoint still should wait for a response.
+3. async in this context meant that the operation will not wait for a long running operation and will return the thread back to the thread pool so it can be reused.
+4. When the opration finishes, it will re-acquire a thread and complete, and responds back to the requester.
+5. This async is internally for the service management and thread exhaustion. but the call is still synchronous and the requestor has to wait!
+6. It's a pure c# thing. nothing to do with the messaging.
+
+## Synchronous messaging between the services:
+
+1. Can and does occur
+2. It tends to pair services (couple them) creating a dependency
+3. Could lead to long dependency chain
+
+Note: In microservice architecture we don't want a chatty communication between services. They still need to communicate to each other, but the intention is to minimize it. And we usually don't want the inter-service communication to be synchronous.
+
+![1649720634711.png](image/Readme/1649720634711.png)
+
+This diagram shows synchronous communication between multiple services. In case of failure of one of the services, the entire chain may loose connection or have to wait a long time which is not desirable.
+
+# Asynchronous Messaging:
+
+1. There is no request/response cycle
+2. Requestor does not wait for the response
+3. It uses an Event model like Publish Subscribe
+4. Typically used between services
+5. An Event Bus is often used (we use RabbitMQ)
+6. Services don't need to know about each other. They know the bus.
+
+![1649721210577.png](image/Readme/1649721210577.png)
+
+Question: Is Event Bus Monolith?
+
+1. To some extent yes. If the Message bus fails, the internal communications will stop. So the microservices should be written in the case they can deal with such conditions.
+2. Services will still operate and work externally.
+3. Message bus is so important and should be treated as a first class cirizen. It should be clustered with message persistent, fault tolerance, etc. message persistent is for the case the Message Bus fails and the cluster restarts, it brings the ability to queue the messages so they are not lost.
+4. Services should implement retry policy. So if Message bus fails it retries the requests and does not lose the events.
