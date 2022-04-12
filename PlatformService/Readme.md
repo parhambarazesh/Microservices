@@ -364,3 +364,17 @@ Question: Is Event Bus Monolith?
 2. Services will still operate and work externally.
 3. Message bus is so important and should be treated as a first class cirizen. It should be clustered with message persistent, fault tolerance, etc. message persistent is for the case the Message Bus fails and the cluster restarts, it brings the ability to queue the messages so they are not lost.
 4. Services should implement retry policy. So if Message bus fails it retries the requests and does not lose the events.
+
+**Fix: If there is an error with the SSL certificates not recognized:**
+
+Error Description:
+
+The SSL connection could not be established, see inner exception.
+
+The remote certificate is invalid because of errors in the certificate chain: UntrustedRoot
+
+How to fix?
+
+```
+dotnet dev-certs https --trust
+```
