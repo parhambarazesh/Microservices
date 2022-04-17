@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commands-depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: commandservice
+  template:
+    metadata:
+      labels:
+        app: commandservice
+    spec:
+      containers:
+        - name: commandservice
+          image: parhambrz/commandservice:latest
+---
+#ClusterIP is for communicating  internally
+apiVersion: v1
+kind: Service
+metadata:
+  # this name is used in appsettings.production.json to define the routes for accessing the apis.
+  name: commands-clusterip-srv
+spec:
+  type: ClusterIP
+  selector: 
+    app: commandservice
+  ports:
+    - name: commandservice
+      protocol: TCP
+      port: 80
+      targetPort: 80
