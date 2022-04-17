@@ -70,6 +70,7 @@ namespace PlatformService.Controllers
             }
             catch (Exception ex)
             {
+                // If the command service is down, we will not get a synchronous response. but still we can return the platformReadDto
                 System.Console.WriteLine($"--> Could not send synchronously: {ex.Message}");
                 
             }
