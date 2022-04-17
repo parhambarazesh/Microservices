@@ -378,3 +378,70 @@ How to fix?
 ```
 dotnet dev-certs https --trust
 ```
+
+After creating the CommandService project, dockerize it with the same Dockerfile as platform service. just change the EntryPoint to the correct dll file.
+
+```
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
+WORKDIR /app
+COPY *.csproj ./
+RUN dotnet restore
+COPY . ./
+RUN dotnet publish -c Release -o out
+
+#This image is the runtime
+FROM mcr.microsoft.com/dotnet/aspnet:6.0
+WORKDIR /app
+#build-env is the other image we got
+COPY --from=build-env /app/out/ .
+#Set the entry point for out image
+ENTRYPOINT ["dotnet","CommandsService.dll"]
+```
+
+To build the docker image:
+
+```
+docker build -t parhambrz/commandservice .
+```
+
+To push the image to dockerhub:
+
+```
+docker push parhambrz/commandservice
+```
+
+To run the container:
+
+```
+docker run -p 8080:80 parhambrz/commandservice
+```
+
+## ClusterIP:
+
+ClusterIP is a service providing a way that dofferent containers can comminicate internally. For accessing the outside world we use NodePort.
+
+Add this lines to platforms-depl.yaml to set the ClusterIP:
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: platforms-clusterip-srv
+spec:
+  type: ClusterIP
+  selector: 
+    app: platformservice
+  ports:
+    - name: platformservice
+      protocol: TCP
+      port: 80
+      targetPort: 80
+```
+
+Then run:
+
+```
+kubectl apply -f platform-depl.yaml
+```
+
+**If there are running deployments, there will be no change to them. only the new deployments or services will run. So you can safely add more services to a .yaml file and run kubectl apply -f filename.**
