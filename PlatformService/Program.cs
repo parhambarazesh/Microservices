@@ -33,7 +33,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// This can make some redirection warnings if using http.
+// app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
