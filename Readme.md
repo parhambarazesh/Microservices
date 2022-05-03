@@ -453,3 +453,49 @@ To restart a deployment:
 ```
 kubctl rollout restart deployment DEPLOYMENT_NAME
 ```
+
+**install Ingress from https://kubernetes.github.io/ingress-nginx/deploy/#docker-desktop
+**
+
+**Add Ingress config file:**
+
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-srv
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+  - host: acme.com
+    http:
+      paths:
+      - path: /api/platforms
+        pathType: Prefix
+        backend:
+          service:
+            name: ingress-srv
+            port:
+              number: 80
+      - path: /api/platforms
+        pathType: Prefix
+        backend:
+          service:
+            name: commands-clusterip-srv
+            port:
+              number: 80
+```
+
+Now add "127.0.0.1 acme.com" to hosts file in c:/Windows/System32/drivers/etc. This will map the address.
+
+then run:
+
+```
+kubectl apply -f ingress-srv.yaml
+```
+
+You can now query this url: "http://acme.com:31822/api/platforms" to get the data.
+
+Note: the port changes by the docker container. read it from "kubectl get services"
