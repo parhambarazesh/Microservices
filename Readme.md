@@ -454,8 +454,24 @@ To restart a deployment:
 kubctl rollout restart deployment DEPLOYMENT_NAME
 ```
 
+## Ingress:
+
 **install Ingress from https://kubernetes.github.io/ingress-nginx/deploy/#docker-desktop
 **
+
+Note:
+
+To get the namespaces run:
+
+```
+kubectl get namespaces
+```
+
+Ingress will setup containers in a different namespace. To get the pods/services/etc in a specific namespace run:
+
+```
+kubectl get pods --namespace=NAMESPACE_NAME
+```
 
 **Add Ingress config file:**
 
@@ -499,3 +515,132 @@ kubectl apply -f ingress-srv.yaml
 You can now query this url: "http://acme.com:31822/api/platforms" to get the data.
 
 Note: the port changes by the docker container. read it from "kubectl get services"
+
+until now the app architecture is like:
+
+![1651577840078.png](image/Readme/1651577840078.png)
+
+## Persistent Volume Claim (PVC):
+
+To get storage class run:
+
+```
+kubectl get storageclass
+```
+
+PVC will map a storage to some parts of the storage on the local machine.
+
+The config file to create PVC (here we create local-pvc.yaml):
+
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mssql-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Mi
+```
+
+To apply the PVC run:
+
+```
+kubectl apply -f local-pvc.yaml
+```
+
+To get the PVCs run:
+
+```
+kubectl get pvc
+```
+
+The result will be something like:
+
+![1651670456360.png](image/Readme/1651670456360.png)
+
+which refers to "hostpath" as storageclass.
+
+**Now we set up SQL server:**
+
+Note:
+
+SQL requires to set up a service password. To set that up in Kubernetes run:
+
+```
+kubectl create secret generic _SECRET_NAME --from-literal=_KEY="_VALUE"
+```
+
+here is the config file for the mssql setup including clusterip and load balancer (named mssql-plat-depl.yaml):
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mssql-depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mssql
+  template:
+    metadata:
+      labels:
+        app: mssql
+    spec:
+      containers:
+        - name: mssql
+          image: mcr.microsoft.com/mssql/server:2017-latest
+          env:
+            - name: MSSQL_PID
+              value: "Express"
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mssql
+                  key: SA_PASSWORD
+          volumeMounts:
+            - name: mssqldb
+              mountPath: /var/opt/mssql/data
+          ports:
+              containerPort: 1433
+      volumes:
+        - name: mssqldb
+          persistentVolumeClaim:
+            # This is the name of the PVC created in the previous step (see K8S\local-pvc.yaml)
+            claimName: mssql-claim
+---
+# setup clusterip
+apiVersion: v1
+kind: Service
+metadata:
+  name: mssql-clusterip-srv
+spec:
+  type: ClusterIP
+  selector:
+    app: mssql
+  ports:
+    - name: mssql
+      protocol: TCP
+      port: 1433
+      targetPort: 1433
+---
+# setup load balancer
+apiVersion: v1
+kind: Service
+metadata:
+  name: mssql-loadbalancer
+spec:
+  type: LoadBalancer
+  selector:
+    app: mssql
+  ports:
+  - protocol: TCP
+    port: 1433
+    targetPort: 1433
+
+```
