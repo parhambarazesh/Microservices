@@ -7,12 +7,30 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+// builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// builder.Services.AddEndpointsApiExplorer();
+// builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<AppDbContext>(opt=>opt.UseInMemoryDatabase("InMem"));
+//check the dev or prod environments. We should check this before building the app (builder.Build();)
+if (builder.Environment.IsProduction())
+{
+    System.Console.WriteLine("--> Using SqlServer Db");
+    builder.Services.AddDbContext<AppDbContext>
+    (
+        opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("PlatformsConn"))
+    );
+}
+else
+{
+    System.Console.WriteLine("--> Using InMemory Db");
+
+    builder.Services.AddDbContext<AppDbContext>
+    (
+        opt=>opt.UseInMemoryDatabase("InMem")
+    );
+}
+
 builder.Services.AddScoped<IPlatformRepo, PlatformRepo>();
 builder.Services.AddHttpClient<ICommandDataClient,HttpCommandDataClient>();
 builder.Services.AddControllers();
@@ -23,7 +41,6 @@ builder.Services.AddSwaggerGen(c =>
 });
 Console.WriteLine($"--> Command Service is running with Endpoint: {builder.Configuration["CommandService"]}");
 
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -33,9 +50,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// This can make some redirection warnings if using http.
-// app.UseHttpsRedirection();
 
+// This can make some redirection warnings if using http.
+app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
