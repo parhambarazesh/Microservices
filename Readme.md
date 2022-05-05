@@ -644,3 +644,15 @@ spec:
     targetPort: 1433
 
 ```
+
+Now run>
+
+```
+kubectl apply -f mssql-plat-depl.yaml
+```
+
+And now SQL server is accessible through MS SQL Server Management Studio.
+
+We set the connection string to SQL Server in the appsettings.production.json.
+
+Note that in Program.cs, you must check the environment before building the app.
