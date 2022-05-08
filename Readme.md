@@ -671,3 +671,58 @@ In addition you need to register the DbContext in Program.cs:
 builder.Services.AddDbContext<AppDbContext>(opt =>
                     opt.UseSqlServer(builder.Configuration["ConnectionString:PlatformsConn"]));
 ```
+
+**Migrate our database in kubernetes:**
+
+first get the deployments running in kubernetes by:
+
+```
+kubectl get deployments
+```
+
+until now we should have 3 deployments running
+
+1. commands-depl
+2. platform-depl
+3. mssql-depl
+
+In PlatformService directory run:
+
+```
+docker built -t DOCKERHUB_USERNAME/platformservice .
+```
+
+```
+docker push parhambrz/platformservice
+```
+
+```
+kubectl rollout restart deployment platforms-depl
+```
+
+This will build and push the changes to dockerhub and restart the deployment.
+
+Note: Remember this code block in PlatformService/Program.cs:
+
+```
+//check the dev or prod environments. We should check this before building the app (builder.Build();)
+if (builder.Environment.IsProduction())
+{
+    System.Console.WriteLine("--> Using SqlServer Db");
+    builder.Services.AddDbContext<AppDbContext>(opt =>
+                    opt.UseSqlServer(builder.Configuration["ConnectionString:PlatformsConn"]));
+}
+else
+{
+    System.Console.WriteLine("--> Using InMemory Db");
+
+    builder.Services.AddDbContext<AppDbContext>
+    (
+        opt=>opt.UseInMemoryDatabase("InMem")
+    );
+}
+```
+
+Here we have checked the environment and set the app to use sqlserver in production(kubernetes).
+
+# Multi-Resources URIs:
