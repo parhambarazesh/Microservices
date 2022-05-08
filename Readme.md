@@ -656,3 +656,18 @@ And now SQL server is accessible through MS SQL Server Management Studio.
 We set the connection string to SQL Server in the appsettings.production.json.
 
 Note that in Program.cs, you must check the environment before building the app.
+
+## Migration:
+
+For migration you can run (after installing dotnet ef):
+
+```
+dotnet ef migrations add _MIGRATION_NAME
+```
+
+In addition you need to register the DbContext in Program.cs:
+
+```
+builder.Services.AddDbContext<AppDbContext>(opt =>
+                    opt.UseSqlServer(builder.Configuration["ConnectionString:PlatformsConn"]));
+```
