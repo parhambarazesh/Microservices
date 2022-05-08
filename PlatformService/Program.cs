@@ -16,10 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsProduction())
 {
     System.Console.WriteLine("--> Using SqlServer Db");
-    builder.Services.AddDbContext<AppDbContext>
-    (
-        opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("PlatformsConn"))
-    );
+    builder.Services.AddDbContext<AppDbContext>(opt =>
+                    opt.UseSqlServer(builder.Configuration["ConnectionString:PlatformsConn"]));
 }
 else
 {
@@ -57,6 +55,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-PrepDb.PrepPoppulation(app);
+PrepDb.PrepPoppulation(app,app.Environment.IsProduction());
 
 app.Run();
