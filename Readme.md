@@ -854,3 +854,13 @@ Now to access the management interfaceusing our load balancer, in a browser go t
 by default the username/password is "guest"
 
 # Asynchronous Messaging:
+
+Add RabbitMQ host and port to appsettings.json in both dev and prod. Note that in production you need to set the ClusterIP name for RabbitMQ as host.
+
+we need to create a separate Dto when the platform is created in a platformservice, for publishing into the message bus.
+
+For running, make sure to run platformservice and command service together. Now try to send a POST request to http://localhost:5000/api/platforms, check the logs in the commandservice and platform service. You can now go to RabbitMQ management (localhost://15672) and see the message published to the message bus.
+
+**One Test:**
+
+Now try to send 20 POST requests and then quit the commandservice, then send a new POST request to the same uri. That is because our platformservice is attempting to send a command to the synchronous endpoint and has to wait for the message to come back which should be successful or unsuccessful. There is a default timeout to wait. In reality, you will have hundreds of services which could stack up and cause massive delays, just because that endpoint is not there. Also noting the RabbitMQ management, once the synchronous messaging component fails, the asynchronous stuff still goes ahead and drops our async messages onto the message bus, because that's still there and running. That's how synchronous messaging can cause problems when failing.
