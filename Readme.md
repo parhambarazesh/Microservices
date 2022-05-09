@@ -737,3 +737,120 @@ a command cannot exist outside a platform. It requires to be linked to a platfor
 ![1652047635271.png](image/Readme/1652047635271.png)
 
 After creating the Models, Data and Dtos, we need to add Automapper to Program.cs.
+
+# Message Bus & RabbitMQ:
+
+**Solution Architecture up to now is lilke:**
+
+![1652110687327.png](image/Readme/1652110687327.png)
+
+We will add:
+
+![1652115221560.png](image/Readme/1652115221560.png)
+
+## RabbitMQ:
+
+1. Message Broker: It accepts and forwards messages
+2. Messages are sent by Publisher (producer)
+3. Messages are received by Subscribers (consumer)
+4. Messages are stored on queues (essentially a message buffer)
+5. Exchanges can be used to add "routing" functionality
+
+**There are 4 types of Exchange:**
+
+1. Direct Exchange: Delivers messages to queues based on a routing key. Ideal for direct/unicast messaging.
+
+   ![1652116186744.png](image/Readme/1652116186744.png)
+2. Fanout Exchange: Delivers messages to all queues that are bound to the exchange. It ignores the routing key. Ideal for broadcast messages.
+
+   ![1652116292039.png](image/Readme/1652116292039.png)
+3. Topic Exchange: Routes message to 1 or more queues based on the routing key and patterns. Used for multicast messaging. Implements various Pub/Sub patterns.
+
+   ![1652116418989.png](image/Readme/1652116418989.png)
+4. Header Exchange
+
+*We are going to use fanout messaging which is the simplest of all.
+
+We add RabbitMQ to kubernetes and should expect this architecture:
+
+![1652116540922.png](image/Readme/1652116540922.png)
+
+To run RabbitMQ in Kubernetes, write the .yaml file as below example:
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          ports:
+            - containerPort: 15672
+              name: rbmq-mgmt-port
+            - containerPort: 5672
+              name: rbmq-msg-port
+---
+# Set cluster ip for rabbitmq
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-clusterip-srv
+spec:
+  type: ClusterIP
+  selector:
+    app: rabbitmq
+  ports:
+    - name: rbmq-mgmt-port
+      protocol: TCP
+      port: 15672
+      targetPort: 15672
+    # This is the actual messaging port
+    - name: rbmq-msg-port
+      protocol: TCP
+      port: 5672
+      targetPort: 5672
+---
+# Set load balancer
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-loadbalancer
+spec:
+  type: LoadBalancer
+  selector:
+    app: rabbitmq
+  ports:
+    - name: rbmq-mgmt-port
+      protocol: TCP
+      port: 15672
+      targetPort: 15672
+    # This is the actual messaging port
+    - name: rbmq-msg-port
+      protocol: TCP
+      port: 5672
+      targetPort: 5672
+
+```
+
+and run:
+
+```
+kubectl apply -f _DEPL_FILENAME
+```
+
+Now to access the management interfaceusing our load balancer, in a browser go to: http://localhost:15672/
+
+by default the username/password is "guest"
+
+# Asynchronous Messaging:
