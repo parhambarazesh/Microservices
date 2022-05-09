@@ -726,3 +726,14 @@ else
 Here we have checked the environment and set the app to use sqlserver in production(kubernetes).
 
 # Multi-Resources URIs:
+
+our commandservice is dealing with two models:
+
+1. commands
+2. platforms
+
+a command cannot exist outside a platform. It requires to be linked to a platform with platformid.
+
+![1652047635271.png](image/Readme/1652047635271.png)
+
+After creating the Models, Data and Dtos, we need to add Automapper to Program.cs.
