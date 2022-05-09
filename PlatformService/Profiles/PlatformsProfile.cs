@@ -18,6 +18,8 @@ namespace PlatformService.Profiles
             //CreateMap will tell AutoMapper to map the source object to the target object. Automapper automatically figures out the properties.
             CreateMap<Platform, PlatformReadDto>();
             CreateMap<PlatformCreateDto, Platform>();
+            // we pass back PlatformReadDto to the consumers. but also we want to pass PlatformPublishedDto to the message bus.
+            CreateMap<PlatformReadDto, PlatformPublishedDto>();
         }
     }
 }
