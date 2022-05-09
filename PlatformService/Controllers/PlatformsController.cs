@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using PlatformService.AsyncDataServices;
 using PlatformService.Data;
 using PlatformService.Dtos;
 using PlatformService.Models;
@@ -17,17 +18,22 @@ namespace PlatformService.Controllers
         private readonly IPlatformRepo _repository;
         private readonly IMapper _mapper;
         private readonly ICommandDataClient _commandDataClient;
+        private readonly IMessageBusClient _messageBusClient;
 
         // Here we inject IPlatformRepo, IMapper and ICommandDataClient into the constructor
         // Because we have added the AddHttpClient to the Program.cs, we can use the HttpClient here.
+        // This is how dependency injection works in ASP.NET Core. but make sure you have registered them
+        // in the Program.cs
         public PlatformsController(
             IPlatformRepo repository,
             IMapper mapper,
-            ICommandDataClient commandDataClient)
+            ICommandDataClient commandDataClient,
+            IMessageBusClient messageBusClient)
         {
             _repository = repository;
             _mapper = mapper;
             _commandDataClient = commandDataClient;
+            _messageBusClient = messageBusClient;
         }
 
         //When you call this, we return an enumeartion of our platform read dto, not platform entity, not platform model
@@ -55,7 +61,7 @@ namespace PlatformService.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<PlatformReadDto>> CreatePlatformAsync(PlatformCreateDto platformCreateDto)
+        public async Task<ActionResult<PlatformReadDto>> CreatePlatform(PlatformCreateDto platformCreateDto)
         {
             //Mapping from platformCreateDto to platform
             var platformModel = _mapper.Map<Platform>(platformCreateDto);
@@ -63,7 +69,7 @@ namespace PlatformService.Controllers
             _repository.SaveChanges();
             //Mapping from platform to platformReadDto
             var platformReadDto = _mapper.Map<PlatformReadDto>(platformModel);
-            //Send the platformReadDto to the Command Service
+            //Send the platformReadDto to the Command Service (sync message)
             try
             {
                 await _commandDataClient.SendPlatformToCommand(platformReadDto);
@@ -72,7 +78,19 @@ namespace PlatformService.Controllers
             {
                 // If the command service is down, we will not get a synchronous response. but still we can return the platformReadDto
                 System.Console.WriteLine($"--> Could not send synchronously: {ex.Message}");
-                
+            }
+
+            // Send the platformReadDto to the Message Bus (async message)
+            try
+            {
+                var platformPublishedDto=_mapper.Map<PlatformPublishedDto>(platformReadDto);
+                // we dont have Event properties in PlatformPublishedDto, so we should define it explicitelly here.
+                platformPublishedDto.Event = "PlatformCreated";
+                _messageBusClient.PublishNewPlatform(platformPublishedDto);
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"--> Could not send asynchronously: {ex.Message}");
             }
             //Return HTTP with the created item
             return CreatedAtRoute(nameof(GetPlatformById), new { Id = platformReadDto.Id }, platformReadDto);
