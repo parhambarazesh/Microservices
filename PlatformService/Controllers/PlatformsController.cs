@@ -85,7 +85,7 @@ namespace PlatformService.Controllers
             {
                 var platformPublishedDto=_mapper.Map<PlatformPublishedDto>(platformReadDto);
                 // we dont have Event properties in PlatformPublishedDto, so we should define it explicitelly here.
-                platformPublishedDto.Event = "PlatformCreated";
+                platformPublishedDto.Event = "Platform_Published";
                 _messageBusClient.PublishNewPlatform(platformPublishedDto);
             }
             catch (System.Exception ex)
