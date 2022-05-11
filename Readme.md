@@ -864,3 +864,23 @@ For running, make sure to run platformservice and command service together. Now 
 **One Test:**
 
 Now try to send 20 POST requests and then quit the commandservice, then send a new POST request to the same uri. That is because our platformservice is attempting to send a command to the synchronous endpoint and has to wait for the message to come back which should be successful or unsuccessful. There is a default timeout to wait. In reality, you will have hundreds of services which could stack up and cause massive delays, just because that endpoint is not there. Also noting the RabbitMQ management, once the synchronous messaging component fails, the asynchronous stuff still goes ahead and drops our async messages onto the message bus, because that's still there and running. That's how synchronous messaging can cause problems when failing.
+
+This example shows if the sync messaging fails for any reason, it will wait for the response (within a specific timeout), and that could potentially make significant delays when you have many services.
+
+# Event Processing
+
+When registering (configuring) the services, they have different service life time:
+
+1. Singleton: Created first time requested, subsequent requests use the same instance.
+2. Scoped: Same within a request, but created for every new request.
+3. transient: New instance provided everytime, never the same/reused.
+
+For injecting the event processor service into our listening service, it should have a life time equal or greater than listening service.
+
+We update the CommandRepo with ExternalPlatformExists, map PlatformPublishedDto into Platform and create the EventProcessor.
+
+**Now we create Asynchronous data service to listen from our command service on the message bus and we use event processor to add our platform to the database.**
+
+In CommandService, add MessageBusSubscriber to listen to the events coming from PlatformService, as well as event processor. Run both PlatformService and CommandService and test the PlatformService API via Insomnia. You should see event received.
+
+![1652311839117.png](image/Readme/1652311839117.png)
