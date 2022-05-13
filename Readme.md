@@ -884,3 +884,11 @@ We update the CommandRepo with ExternalPlatformExists, map PlatformPublishedDto 
 In CommandService, add MessageBusSubscriber to listen to the events coming from PlatformService, as well as event processor. Run both PlatformService and CommandService and test the PlatformService API via Insomnia. You should see event received.
 
 ![1652311839117.png](image/Readme/1652311839117.png)
+
+Inbound POST to Command service was OK! shows our synchronous event was successful. Then we receive the event, determine and process it.
+
+![1652312606720.png](image/Readme/1652312606720.png)
+
+Now the Platform is created and you can create commands for the platform.
+
+![1652312891077.png](image/Readme/1652312891077.png)
