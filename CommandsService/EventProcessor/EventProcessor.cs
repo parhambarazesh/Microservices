@@ -22,6 +22,7 @@ namespace CommandsService.EventProcessor
         switch (eventType)
         {
             case EventType.PlatformPublished:
+                addPlatform(message);
                 break;
             default:
                 break;
@@ -55,6 +56,7 @@ namespace CommandsService.EventProcessor
                 {
                     repo.CreatePlatform(plat);
                     repo.SaveChanges();
+                    System.Console.WriteLine("Platform Added!");
                 }
                 else
                 {
